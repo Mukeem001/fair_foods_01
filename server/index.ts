@@ -43,7 +43,6 @@ export function log(message: string, source = "express") {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   // Log raw request body when available for debugging JSON parse issues
   if ((req as any).rawBody) {
@@ -55,20 +54,11 @@ app.use((req, res, next) => {
     }
   }
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
+      // Clean log: just show method, path, status, and duration (no response body)
+      const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       log(logLine);
     }
   });
