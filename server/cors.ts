@@ -5,6 +5,8 @@ const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://localhost:3000",
   "http://172.16.2.64:5173",
+  "https://fairfoods.in",
+  "https://www.fairfoods.in",
 ]);
 
 export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
