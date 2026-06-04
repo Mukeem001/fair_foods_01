@@ -185,9 +185,12 @@ export async function registerAuthRoutes(httpServer: Server, app: Express): Prom
           const message = await sendSmsOtp(String(identifier));
           return res.json({ message, type: "sms" });
         }
-      } catch (otpError) {
-        console.error("OTP send error:", otpError);
-        return res.status(500).json({ message: "Failed to send OTP" });
+      } catch (otpError: unknown) {
+        const err = otpError as { message?: string };
+        console.error("OTP send error:", err);
+        return res.status(500).json({
+          message: err.message || "Failed to send OTP. Please try again.",
+        });
       }
     } catch (e) {
       console.error("Send OTP failed", e);
