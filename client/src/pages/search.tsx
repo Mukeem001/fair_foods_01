@@ -46,7 +46,7 @@ export default function SearchPage() {
   const handleLoadMore = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 2000));
     loadMore();
     setLoadingMore(false);
   };
