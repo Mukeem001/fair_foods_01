@@ -54,7 +54,8 @@ async function buildAll() {
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
   await esbuild({
-    entryPoints: ["server/index.ts"],
+    // Bundle the run wrapper so it can silence console before server boots.
+    entryPoints: ["server/run.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
