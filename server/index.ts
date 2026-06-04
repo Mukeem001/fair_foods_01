@@ -105,6 +105,15 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
+  // Basic health route for quick checks (returns JSON)
+  app.get("/", (_req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      message: "Server running",
+      env: process.env.NODE_ENV || "development",
+    });
+  });
+
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   }
