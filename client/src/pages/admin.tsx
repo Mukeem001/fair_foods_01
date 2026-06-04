@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock, Trash2, Eye, EyeOff, ArrowLeft, Layers, Users, ChartPie, Settings, Box } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 import { Link } from "wouter";
 
 export interface FoodOption {
@@ -83,7 +84,7 @@ export default function Admin() {
   });
 
   const fetchFoods = async () => {
-    const res = await fetch("/api/admin/foods", { headers: getAdminHeaders() });
+    const res = await apiFetch("/api/admin/foods", { headers: getAdminHeaders() });
     if (res.ok) {
       const data = await res.json();
       setFoods(data);
@@ -91,7 +92,7 @@ export default function Admin() {
   };
 
   const fetchSettings = async () => {
-    const res = await fetch("/api/admin/settings", { headers: getAdminHeaders() });
+    const res = await apiFetch("/api/admin/settings", { headers: getAdminHeaders() });
     if (res.ok) {
       const data = await res.json();
       if (data?.whatsappNumber) setWhatsappNumber(data.whatsappNumber);
@@ -99,7 +100,7 @@ export default function Admin() {
   };
 
   const fetchOrders = async () => {
-    const res = await fetch("/api/admin/orders", { headers: getAdminHeaders() });
+    const res = await apiFetch("/api/admin/orders", { headers: getAdminHeaders() });
     if (res.ok) {
       const data = await res.json();
       setOrders(data);
@@ -123,7 +124,7 @@ export default function Admin() {
   }, [isAuthenticated, adminKey]);
 
   const handleLogin = async () => {
-    const res = await fetch("/api/admin/login", {
+    const res = await apiFetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
@@ -164,7 +165,7 @@ export default function Admin() {
       return;
     }
 
-    const res = await fetch("/api/admin/foods", {
+    const res = await apiFetch("/api/admin/foods", {
       method: "POST",
       headers: getAdminHeaders(),
       body: JSON.stringify(newItem),
@@ -181,7 +182,7 @@ export default function Admin() {
   };
 
   const toggleFood = async (id: string) => {
-    await fetch(`/api/admin/foods/${id}/toggle`, {
+    await apiFetch(`/api/admin/foods/${id}/toggle`, {
       method: "PATCH",
       headers: getAdminHeaders(),
     });
@@ -189,7 +190,7 @@ export default function Admin() {
   };
 
   const deleteFood = async (id: string) => {
-    await fetch(`/api/admin/foods/${id}`, {
+    await apiFetch(`/api/admin/foods/${id}`, {
       method: "DELETE",
       headers: getAdminHeaders(),
     });
@@ -197,7 +198,7 @@ export default function Admin() {
   };
 
   const saveWhatsapp = async () => {
-    const res = await fetch("/api/admin/settings", {
+    const res = await apiFetch("/api/admin/settings", {
       method: "POST",
       headers: getAdminHeaders(),
       body: JSON.stringify({ whatsappNumber }),
@@ -210,7 +211,7 @@ export default function Admin() {
   };
 
   const updateOrderStatus = async (id: string, status: string) => {
-    const res = await fetch(`/api/admin/orders/${id}/status`, {
+    const res = await apiFetch(`/api/admin/orders/${id}/status`, {
       method: "PATCH",
       headers: getAdminHeaders(),
       body: JSON.stringify({ status }),

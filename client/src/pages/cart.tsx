@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import {
@@ -43,7 +44,7 @@ export default function Cart() {
 
         const ids = Array.from(new Set(cart.map((item) => item.id)));
 
-        const res = await fetch("/api/foods/check", {
+        const res = await apiFetch("/api/foods/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ids }),
@@ -135,7 +136,7 @@ export default function Cart() {
 
     const address = String(user.address ?? "").trim();
 
-    const res = await fetch("/api/orders", {
+    const res = await apiFetch("/api/orders", {
 
       method: "POST",
 

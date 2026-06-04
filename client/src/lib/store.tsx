@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type Option = {
   name: string;
@@ -108,13 +109,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const fetchFoods = async () => {
-    const res = await fetch("/api/foods");
+    const res = await apiFetch("/api/foods");
     const data = await res.json();
     setFoods(data.filter((f: FoodItem) => f.active));
   };
 
   const fetchSettings = async () => {
-    const res = await fetch("/api/settings");
+    const res = await apiFetch("/api/settings");
     const data = await res.json();
     if (data?.whatsappNumber) setWhatsappNumber(data.whatsappNumber);
   };
@@ -139,7 +140,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       // Try server login first
-      const res = await fetch("/api/users/login", {
+      const res = await apiFetch("/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -181,7 +182,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setUser(found);
 
       // token server-side sign endpoint
-      const res = await fetch("/api/auth/token", {
+      const res = await apiFetch("/api/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: found.id }),
@@ -204,7 +205,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const signup = async (fullName: string, email: string, password: string) => {
     // Try server signup first
     try {
-      const res = await fetch("/api/auth/signup", {
+      const res = await apiFetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fullName, email, password }),
@@ -259,7 +260,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveUsers(nextUsers);
     setUser(newUser);
 
-    const tokenRes = await fetch("/api/auth/token", {
+    const tokenRes = await apiFetch("/api/auth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: newUser.id }),
@@ -290,7 +291,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setUser(updated);
 
     try {
-      const res = await fetch(`/api/profile`, {
+const res = await apiFetch(`/api/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

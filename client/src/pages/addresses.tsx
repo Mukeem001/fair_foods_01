@@ -3,6 +3,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { GoogleMap, LoadScript, Marker, Autocomplete } from "@react-google-maps/api";
 import { FaArrowLeft, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import { useLocation } from "wouter";
+import { apiFetch } from "@/lib/api";
 import { useStore } from "@/lib/store";
 
 
@@ -64,7 +65,7 @@ export default function AddressPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem("fairfoods-token");
-      const res = await fetch(`/api/profile/addresses`, {
+      const res = await apiFetch(`/api/profile/addresses`, {
         headers: {
           Authorization: `Bearer ${token || ""}`,
         },
@@ -117,7 +118,7 @@ export default function AddressPage() {
       isDefault: Boolean(form.default),
     };
 
-    const res = await fetch("/api/profile/addresses", {
+    const res = await apiFetch("/api/profile/addresses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -139,7 +140,7 @@ export default function AddressPage() {
 
   const deleteAddress = async (id: number | string) => {
     const token = localStorage.getItem("fairfoods-token");
-    const res = await fetch(`/api/profile/addresses/${id}`, {
+    const res = await apiFetch(`/api/profile/addresses/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token || ""}`,
