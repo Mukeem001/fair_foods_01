@@ -3,15 +3,26 @@ import type { Request, Response, NextFunction } from "express";
 // Keep this tight for security. Add more origins if needed.
 const allowedOrigins = new Set([
   "http://localhost:5173",
+  "http://127.0.0.1:5173",
   "http://localhost:3000",
   "http://172.16.2.64:5173",
   "https://fairfoods.in",
   "https://www.fairfoods.in",
 ]);
 
+function isAllowedDevOrigin(origin: string): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return (
+    /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+    /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+    /^https?:\/\/172\.16\.\d+\.\d+:5173$/.test(origin) ||
+    /^https?:\/\/192\.168\.\d+\.\d+:5173$/.test(origin)
+  );
+}
+
 export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
   const origin = req.headers.origin ? String(req.headers.origin) : "";
-  if (origin && allowedOrigins.has(origin)) {
+  if (origin && (allowedOrigins.has(origin) || isAllowedDevOrigin(origin))) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   }

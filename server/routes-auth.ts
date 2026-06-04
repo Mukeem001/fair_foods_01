@@ -216,6 +216,51 @@ export async function registerAuthRoutes(httpServer: Server, app: Express): Prom
     }
   });
 
+  // Login after OTP was verified (phone or email)
+  app.post("/api/auth/login-after-otp", async (req, res) => {
+    try {
+      const { identifier } = req.body ?? {};
+      if (!identifier) {
+        return res.status(400).json({ message: "Identifier required" });
+      }
+
+      const id = String(identifier);
+      const isEmail = id.includes("@");
+      const db = await getDb();
+      const otpCollection = db.collection("otp_store");
+      const users = db.collection("users");
+
+      const otpQuery = isEmail
+        ? { email: id.toLowerCase(), verified: true }
+        : { phone: id, verified: true };
+
+      const otpRecord = await otpCollection.findOne(otpQuery);
+      if (!otpRecord) {
+        return res.status(401).json({ message: "OTP not verified. Please verify OTP first." });
+      }
+
+      const userQuery = isEmail ? { email: id.toLowerCase() } : { phone: id };
+      const user = await users.findOne(userQuery);
+      if (!user) {
+        return res.status(404).json({ message: "No account found. Please sign up first." });
+      }
+
+      const token = signToken(String(user.id));
+      return res.json({
+        token,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          phone: user.phone,
+        },
+      });
+    } catch (e) {
+      console.error("Login after OTP failed", e);
+      return res.status(500).json({ message: "Login failed" });
+    }
+  });
+
   // Signup with OTP verification
   app.post("/api/auth/signup-with-otp", async (req, res) => {
     try {

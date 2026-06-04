@@ -49,6 +49,10 @@ type StoreContextType = {
   forgotPassword: (email: string) => Promise<string>;
   updateProfile: (data: Partial<Pick<User, "fullName" | "phone" | "address">>) => Promise<void>;
   addFunds: (amount: number) => Promise<void>;
+  setAuthSession: (
+    token: string,
+    authUser: { id: string; fullName: string; email: string; phone?: string; password?: string }
+  ) => void;
 };
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -329,6 +333,29 @@ const res = await apiFetch(`/api/profile`, {
     saveUsers(users);
   };
 
+  const setAuthSession = (
+    authToken: string,
+    authUser: { id: string; fullName: string; email: string; phone?: string; password?: string }
+  ) => {
+    const sessionUser: User = {
+      id: authUser.id,
+      fullName: authUser.fullName,
+      email: authUser.email,
+      password: authUser.password ?? "",
+      walletBalance: 0,
+      address: "",
+      phone: authUser.phone ?? "",
+      orders: [],
+      createdAt: new Date().toISOString(),
+    };
+    setToken(authToken);
+    setUser(sessionUser);
+    localStorage.setItem("token", authToken);
+    const users = loadUsers();
+    const filtered = users.filter((u) => u.id !== sessionUser.id);
+    saveUsers([...filtered, sessionUser]);
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -347,6 +374,7 @@ const res = await apiFetch(`/api/profile`, {
         forgotPassword,
         updateProfile,
         addFunds,
+        setAuthSession,
       }}
     >
       {children}

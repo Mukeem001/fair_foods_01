@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { apiUrl } from "@/lib/api";
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -60,12 +61,15 @@ export async function signInWithGoogle() {
         photoURL: user.photoURL,
       },
     };
-  } catch (error: any) {
-    console.error("Google sign-in error:", error);
-    return {
-      success: false,
-      error: error.message,
-    };
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    console.error("Google sign-in error:", err);
+    let message = err.message || "Google sign-in failed";
+    if (err.code === "auth/unauthorized-domain") {
+      message =
+        "Google sign-in is not allowed on this domain. Add localhost to Firebase Console → Authentication → Authorized domains.";
+    }
+    return { success: false, error: message };
   }
 }
 
@@ -162,14 +166,11 @@ export async function sendPhoneOtp(phoneNumber: string): Promise<boolean> {
 // Backend phone OTP fallback
 async function sendBackendPhoneOtp(phoneNumber: string): Promise<boolean> {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-    
-    // Format phone number
     const normalized = phoneNumber.trim().startsWith("+")
       ? phoneNumber.trim()
-      : `+91${phoneNumber.trim().replace(/\D/g, '')}`;
+      : `+91${phoneNumber.trim().replace(/\D/g, "")}`;
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+    const response = await fetch(apiUrl("/api/auth/send-otp"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier: normalized }),
@@ -226,14 +227,11 @@ export async function verifyPhoneOtp(code: string, phoneNumber?: string): Promis
 // Backend phone OTP verification
 async function verifyBackendPhoneOtp(code: string, phoneNumber: string): Promise<any> {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-    
-    // Format phone number
     const normalized = phoneNumber.trim().startsWith("+")
       ? phoneNumber.trim()
-      : `+91${phoneNumber.trim().replace(/\D/g, '')}`;
+      : `+91${phoneNumber.trim().replace(/\D/g, "")}`;
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+    const response = await fetch(apiUrl("/api/auth/verify-otp"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier: normalized, otp: code }),

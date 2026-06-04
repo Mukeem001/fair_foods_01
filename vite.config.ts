@@ -19,8 +19,12 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      // During local development proxy API requests to the deployed Render server
-      "/api": "https://fair-foods-01.onrender.com"
+      // Dev: same-origin /api avoids CORS. Default = Render; use local server with `npm run dev`.
+      "/api": {
+        target: process.env.VITE_DEV_API_PROXY || "https://fair-foods-01.onrender.com",
+        changeOrigin: true,
+        secure: true,
+      },
     },
     host: true,
   },
