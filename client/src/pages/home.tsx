@@ -1,9 +1,13 @@
-  import { useState, useEffect } from "react";
+  import { useState, useEffect, useMemo } from "react";
   import { useStore } from "@/lib/store";
   import { FoodCard } from "@/components/food-card";
   import { BottomNav } from "@/components/bottom-nav";
+  import { LoadMoreButton } from "@/components/load-more-button";
+  import InfiniteSentinel from "@/components/infinite-sentinel";
+  import { usePaginatedList } from "@/hooks/use-paginated-list";
   import { Search, MapPin } from "lucide-react";
   import { motion, AnimatePresence } from "framer-motion";
+  import type { FoodItem } from "@/lib/store";
 
   import logo from "@/assets/logo.png";
   import heroImg from "@/assets/food-hero.png";
@@ -34,15 +38,23 @@
       ...Array.from(new Set(foods.map((f: any) => f.category))),
     ];
 
-    const filteredFoods = foods.filter((f: any) => {
-      const matchesCategory =
-        category === "All" || f.category === category;
-      const matchesSearch = f.name
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
+    const filteredFoods = useMemo(
+      () =>
+        foods.filter((f: FoodItem) => {
+          const matchesCategory = category === "All" || f.category === category;
+          const matchesSearch = f.name
+            ?.toLowerCase()
+            .includes(search.toLowerCase());
+          return matchesCategory && matchesSearch && f.active;
+        }),
+      [foods, category, search]
+    );
 
-      return matchesCategory && matchesSearch && f.active;
-    });
+    const { visible, hasMore, loadMore, remaining } = usePaginatedList(
+      filteredFoods,
+      undefined,
+      `${search}-${category}`
+    );
 
     return (
       <>
@@ -138,17 +150,26 @@
         </div>
 
         {/* 🍔 FOOD GRID */}
-        <div className="px-5 mt-4 grid grid-cols-2 gap-3">
-          {filteredFoods.map((item: any) => (
-            <FoodCard key={item.id} item={item} />
-          ))}
-        </div>
+        <div className="px-5 mt-4">
+          <div className="grid grid-cols-2 gap-3">
+            {visible.map((item) => (
+              <FoodCard key={item.id} item={item} />
+            ))}
+          </div>
 
-        {filteredFoods.length === 0 && (
-          <p className="text-center text-gray-400 mt-10 text-sm">
-            No items available
-          </p>
-        )}
+          {filteredFoods.length === 0 && (
+            <p className="text-center text-gray-400 mt-10 text-sm">
+              No items available
+            </p>
+          )}
+
+          {hasMore && (
+            <>
+              <InfiniteSentinel onLoadMore={loadMore} hasMore={hasMore} />
+              <div className="mt-3" />
+            </>
+          )}
+        </div>
       </div>
 
       <BottomNav />

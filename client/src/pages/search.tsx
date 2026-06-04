@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { FoodCard } from "@/components/food-card";
+import { LoadMoreButton } from "@/components/load-more-button";
+import InfiniteSentinel from "@/components/infinite-sentinel";
+import { usePaginatedList } from "@/hooks/use-paginated-list";
+import type { FoodItem } from "@/lib/store";
 
 import {
   Search,
@@ -17,28 +21,25 @@ export default function SearchPage() {
 
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    // future use
-  }, []);
-
   const filtered = useMemo(() => {
-
     const q = query.trim().toLowerCase();
 
     return foods
-      .filter((f: any) => f.active)
-      .filter((f: any) => {
-
+      .filter((f: FoodItem) => f.active)
+      .filter((f) => {
         if (!q) return true;
-
         return (
-          String(f.name ?? "").toLowerCase().includes(q) ||
-          String(f.category ?? "").toLowerCase().includes(q)
+          f.name.toLowerCase().includes(q) ||
+          f.category.toLowerCase().includes(q)
         );
-
       });
-
   }, [foods, query]);
+
+  const { visible, hasMore, loadMore, remaining } = usePaginatedList(
+    filtered,
+    undefined,
+    query
+  );
 
   return (
 
@@ -158,40 +159,45 @@ export default function SearchPage() {
 
           {filtered.length > 0 ? (
 
-            <div className="grid grid-cols-2 gap-3">
+            <>
+              <div className="grid grid-cols-2 gap-3">
 
-              {filtered.map((item: any) => (
+                {visible.map((item) => (
 
-                <div
-                  key={item.id}
-                  className="space-y-1"
-                >
+                  <div
+                    key={item.id}
+                    className="space-y-1"
+                  >
 
-                  {/* CATEGORY */}
+                    <div className="flex items-center">
 
-                  <div className="flex items-center">
+                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
 
-                    <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
+                        {item.category || "Food"}
 
-                      {item.category || "Food"}
+                      </span>
 
-                    </span>
+                    </div>
+
+                    <div className="scale-[0.96] origin-top">
+
+                      <FoodCard item={item} />
+
+                    </div>
 
                   </div>
 
-                  {/* FOOD CARD */}
+                ))}
 
-                  <div className="scale-[0.96] origin-top">
+              </div>
 
-                    <FoodCard item={item} />
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
+              {hasMore && (
+                <>
+                  <InfiniteSentinel onLoadMore={loadMore} hasMore={hasMore} />
+                  <div className="mt-3" />
+                </>
+              )}
+            </>
 
           ) : (
 
