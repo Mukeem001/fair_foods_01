@@ -163,7 +163,14 @@
         <div className="px-5 mt-4">
           <div className="grid grid-cols-2 gap-3">
             {visible.map((item) => (
-              <FoodCard key={item.id} item={item} />
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <FoodCard item={item} />
+              </motion.div>
             ))}
           </div>
 

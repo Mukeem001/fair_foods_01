@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { FoodCard } from "@/components/food-card";
@@ -174,10 +175,7 @@ export default function SearchPage() {
 
                 {visible.map((item) => (
 
-                  <div
-                    key={item.id}
-                    className="space-y-1"
-                  >
+                  <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-1">
 
                     <div className="flex items-center">
 
@@ -195,7 +193,7 @@ export default function SearchPage() {
 
                     </div>
 
-                  </div>
+                  </motion.div>
 
                 ))}
 
