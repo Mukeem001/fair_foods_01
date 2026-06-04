@@ -2,8 +2,8 @@
   import { useStore } from "@/lib/store";
   import { FoodCard } from "@/components/food-card";
   import { BottomNav } from "@/components/bottom-nav";
-  import { LoadMoreButton } from "@/components/load-more-button";
   import InfiniteSentinel from "@/components/infinite-sentinel";
+  import { Spinner } from "@/components/ui/spinner";
   import { usePaginatedList } from "@/hooks/use-paginated-list";
   import { Search, MapPin } from "lucide-react";
   import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +55,16 @@
       undefined,
       `${search}-${category}`
     );
+
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    const handleLoadMore = async () => {
+      if (loadingMore) return;
+      setLoadingMore(true);
+      await new Promise((r) => setTimeout(r, 1000));
+      loadMore();
+      setLoadingMore(false);
+    };
 
     return (
       <>
@@ -165,8 +175,10 @@
 
           {hasMore && (
             <>
-              <InfiniteSentinel onLoadMore={loadMore} hasMore={hasMore} />
-              <div className="mt-3" />
+              <InfiniteSentinel onLoadMore={handleLoadMore} hasMore={hasMore} />
+              <div className="mt-3 flex justify-center">
+                {loadingMore && <Spinner className="w-6 h-6 text-gray-500" />}
+              </div>
             </>
           )}
         </div>
