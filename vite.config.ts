@@ -19,7 +19,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      "/api": "http://localhost:3000"
+      // During local development proxy API requests to the deployed Render server
+      "/api": "https://fair-foods-01.onrender.com"
     },
     host: true,
   },
