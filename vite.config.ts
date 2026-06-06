@@ -16,8 +16,8 @@ export default defineConfig({
   },
   root: "client",
   server: {
-    port: 5173,
-    strictPort: true,
+    port: Number(process.env.VITE_PORT || 5173),
+    strictPort: false,
     proxy: {
       // Dev: same-origin /api avoids CORS. Default = Render; use local server with `npm run dev`.
       "/api": {
