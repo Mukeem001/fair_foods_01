@@ -8,6 +8,8 @@ const allowedOrigins = new Set([
   "http://172.16.2.64:5173",
   "https://fairfoods.in",
   "https://www.fairfoods.in",
+  "https://admin.fairfoods.in",
+  "https://www.admin.fairfoods.in",
 ]);
 
 function isAllowedDevOrigin(origin: string): boolean {
