@@ -264,8 +264,42 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
       const limit = Math.min(100, Math.max(1, Number(req.query.limit || 10)));
       const skip = (page - 1) * limit;
 
-      const total = await orders.countDocuments({}).catch(() => 0);
-      const all = await orders.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
+      // Date filter support
+      const filter: any = {};
+      const createdType = String(req.query.createdType || "");
+      const now = new Date();
+      if (createdType) {
+        const from = new Date(now);
+        if (createdType === "today") {
+          from.setHours(0, 0, 0, 0);
+        } else if (createdType === "yesterday") {
+          from.setDate(now.getDate() - 1);
+          from.setHours(0, 0, 0, 0);
+          // For yesterday, also set upper bound to end of yesterday
+          const to = new Date(now);
+          to.setHours(0, 0, 0, 0);
+          filter.createdAt = { $gte: from, $lt: to };
+        } else if (createdType === "last3days") {
+          from.setDate(now.getDate() - 3);
+          filter.createdAt = { $gte: from };
+        } else if (createdType === "last7days") {
+          from.setDate(now.getDate() - 7);
+          filter.createdAt = { $gte: from };
+        }
+        if (!filter.createdAt) {
+          filter.createdAt = { $gte: from };
+        }
+      }
+
+      if (req.query.createdAfter) {
+        filter.createdAt = { ...(filter.createdAt || {}), $gte: new Date(String(req.query.createdAfter)) };
+      }
+      if (req.query.createdBefore) {
+        filter.createdAt = { ...(filter.createdAt || {}), $lte: new Date(String(req.query.createdBefore)) };
+      }
+
+      const total = await orders.countDocuments(filter).catch(() => 0);
+      const all = await orders.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
 
       // Join user data for the admin orders UI.
       // orders docs store: { userId, items, total, address, status, createdAt, ... }
@@ -549,6 +583,32 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
           { email: re },
           { phone: re },
         ];
+      }
+
+      const joinedType = String(req.query.joinedType || "");
+      const now = new Date();
+      if (joinedType) {
+        const from = new Date(now);
+        if (joinedType === "today") {
+          from.setHours(0, 0, 0, 0);
+        } else if (joinedType === "yesterday") {
+          from.setDate(now.getDate() - 1);
+          from.setHours(0, 0, 0, 0);
+        } else if (joinedType === "last3days") {
+          from.setDate(now.getDate() - 3);
+        } else if (joinedType === "last7days") {
+          from.setDate(now.getDate() - 7);
+        } else if (joinedType === "lastMonth") {
+          from.setDate(now.getDate() - 30);
+        }
+        filter.createdAt = { $gte: from };
+      }
+
+      if (req.query.joinedAfter) {
+        filter.createdAt = { ...(filter.createdAt || {}), $gte: new Date(String(req.query.joinedAfter)) };
+      }
+      if (req.query.joinedBefore) {
+        filter.createdAt = { ...(filter.createdAt || {}), $lte: new Date(String(req.query.joinedBefore)) };
       }
 
       const total = await users.countDocuments(filter);

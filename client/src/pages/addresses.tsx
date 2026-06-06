@@ -1,19 +1,12 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/bottom-nav";
-import { GoogleMap, LoadScript, Marker, Autocomplete } from "@react-google-maps/api";
+import { AddressMapPicker, type MapPosition } from "@/components/address-map-picker";
 import { FaArrowLeft, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import { useLocation } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { useStore } from "@/lib/store";
 
-
-const mapStyle = {
-  width: "100%",
-  height: "200px",
-  borderRadius: "14px",
-};
-
-const center = {
+const defaultCenter: MapPosition = {
   lat: 28.6139,
   lng: 77.209,
 };
@@ -23,11 +16,8 @@ export default function AddressPage() {
   const [, setLocation] = useLocation();
 
   const [showForm, setShowForm] = useState(false);
-
-  const [mapCenter, setMapCenter] = useState(center);
-  const [marker, setMarker] = useState(center);
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-
+  const [mapCenter, setMapCenter] = useState<MapPosition>(defaultCenter);
+  const [marker, setMarker] = useState<MapPosition>(defaultCenter);
 
   const [form, setForm] = useState({
     name: "",
@@ -39,26 +29,8 @@ export default function AddressPage() {
     default: false,
   });
 
-  const [addresses, setAddresses] = useState<Array<any>>([]);
+  const [addresses, setAddresses] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(false);
-
-
-  const handlePlaceChanged = () => {
-    if (!autocomplete) return;
-
-    const place = autocomplete.getPlace();
-    const location = place.geometry?.location;
-    if (!location) return;
-
-
-    const pos = {
-      lat: location.lat(),
-      lng: location.lng(),
-    };
-
-    setMapCenter(pos);
-    setMarker(pos);
-  };
 
   const loadAddresses = async () => {
     if (!user?.id) return;
@@ -89,16 +61,22 @@ export default function AddressPage() {
   }, [user]);
 
   const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported on this device");
+      return;
+    }
 
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const location = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      };
-
-      setMapCenter(location);
-      setMarker(location);
-    });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const location = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setMapCenter(location);
+        setMarker(location);
+      },
+      () => alert("Could not get your location. Allow location permission and try again.")
+    );
   };
 
   const saveAddress = async () => {
@@ -116,6 +94,8 @@ export default function AddressPage() {
       city: form.city,
       pincode: form.pincode,
       isDefault: Boolean(form.default),
+      lat: marker.lat,
+      lng: marker.lng,
     };
 
     const res = await apiFetch("/api/profile/addresses", {
@@ -137,7 +117,6 @@ export default function AddressPage() {
     await loadAddresses();
   };
 
-
   const deleteAddress = async (id: number | string) => {
     const token = localStorage.getItem("fairfoods-token");
     const res = await apiFetch(`/api/profile/addresses/${id}`, {
@@ -156,173 +135,124 @@ export default function AddressPage() {
     await loadAddresses();
   };
 
-
-
   return (
     <>
       <div className="min-h-screen bg-[#f4f6fb] pb-24">
-
-        {/* HEADER */}
-
         <div className="bg-white px-4 py-3 rounded-b-2xl flex items-center gap-3 shadow-sm">
-          <FaArrowLeft className="text-gray-700" />
+          <button type="button" onClick={() => setLocation("/profile")} aria-label="Back">
+            <FaArrowLeft className="text-gray-700" />
+          </button>
           <h2 className="font-semibold text-lg text-gray-800">My Addresses</h2>
         </div>
 
         <div className="p-4 space-y-4">
-
-          {/* ADDRESS LIST */}
+          {loading && addresses.length === 0 && (
+            <p className="text-center text-sm text-gray-500">Loading addresses…</p>
+          )}
 
           {addresses.map((a) => (
             <div
-              key={a.id}
+              key={String(a.id)}
               className="bg-white rounded-2xl p-4 shadow-sm flex justify-between"
             >
               <div>
-                <p className="font-semibold">{a.name} ({a.phone})</p>
-                <p className="text-sm text-gray-500">
-                  {a.house}, {a.area}, {a.city} - {a.pincode}
+                <p className="font-semibold">
+                  {String(a.name)} ({String(a.phone)})
                 </p>
-
-                {a.default && (
+                <p className="text-sm text-gray-500">
+                  {String(a.house)}, {String(a.area)}, {String(a.city)} - {String(a.pincode)}
+                </p>
+                {Boolean(a.isDefault ?? a.default) && (
                   <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded mt-1 inline-block">
                     Default
                   </span>
                 )}
               </div>
-
               <div className="flex gap-3 text-gray-600">
-                <FaEdit className="cursor-pointer" />
+                <FaEdit className="cursor-pointer opacity-40" title="Edit coming soon" />
                 <FaTrash
-                  className="cursor-pointer"
-                  onClick={() => deleteAddress(a.id)}
+                  className="cursor-pointer hover:text-red-500"
+                  onClick={() => deleteAddress(a.id as number | string)}
                 />
               </div>
             </div>
           ))}
 
-          {/* ADD BUTTON */}
-
           <button
+            type="button"
             onClick={() => setShowForm(true)}
             className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl flex items-center justify-center gap-2"
           >
             <FaPlus /> Add Address
           </button>
 
-          {/* FORM */}
-
           {showForm && (
-
             <div className="bg-white rounded-2xl p-4 shadow space-y-3">
-
               <h3 className="font-semibold">Add Address</h3>
 
               <div className="grid grid-cols-2 gap-3">
-
                 <input
                   placeholder="Full Name"
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-2 text-sm"
+                  value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
-
                 <input
                   placeholder="Phone"
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-2 text-sm"
+                  value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
-
                 <input
                   placeholder="House / Flat"
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-2 text-sm"
+                  value={form.house}
                   onChange={(e) => setForm({ ...form, house: e.target.value })}
                 />
-
                 <input
                   placeholder="Area / Street"
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-2 text-sm"
+                  value={form.area}
                   onChange={(e) => setForm({ ...form, area: e.target.value })}
                 />
-
                 <input
                   placeholder="City"
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-2 text-sm"
+                  value={form.city}
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
                 />
-
                 <input
                   placeholder="Pincode"
-                  className="border rounded-lg p-2"
+                  className="border rounded-lg p-2 text-sm"
+                  value={form.pincode}
                   onChange={(e) => setForm({ ...form, pincode: e.target.value })}
                 />
-
               </div>
 
               <button
+                type="button"
                 onClick={getCurrentLocation}
-                className="w-full border border-green-500 text-green-600 py-2 rounded-lg"
+                className="w-full border border-green-500 text-green-600 py-2 rounded-lg text-sm"
               >
                 📍 Use Current Location
               </button>
 
-              {/* GOOGLE MAP */}
-
-              <LoadScript
-                googleMapsApiKey="YOUR_GOOGLE_MAP_KEY"
-                libraries={["places"]}
-              >
-
-                <Autocomplete
-                  onLoad={(auto) => setAutocomplete(auto as unknown as google.maps.places.Autocomplete)}
-
-                  onPlaceChanged={handlePlaceChanged}
-                >
-                  <input
-                    placeholder="Search address"
-                    className="border rounded-lg p-2 w-full"
-                  />
-                </Autocomplete>
-
-                <GoogleMap
-                  mapContainerStyle={mapStyle}
-                  center={mapCenter}
-                  zoom={15}
-                  onClick={(e) => {
-                    if (!e.latLng) return;
-                    setMarker({
-                      lat: e.latLng.lat(),
-                      lng: e.latLng.lng(),
-                    });
-                  }}
-
-                >
-                  <Marker
-                    position={marker}
-                    draggable
-                    onDragEnd={(e) => {
-                      if (!e.latLng) return;
-                      setMarker({
-                        lat: e.latLng.lat(),
-                        lng: e.latLng.lng(),
-                      });
-                    }}
-
-                  />
-                </GoogleMap>
-
-              </LoadScript>
+              <AddressMapPicker
+                center={mapCenter}
+                marker={marker}
+                onCenterChange={setMapCenter}
+                onMarkerChange={setMarker}
+              />
 
               <button
+                type="button"
                 onClick={saveAddress}
                 className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl"
               >
                 Save Address
               </button>
-
             </div>
-
           )}
-
         </div>
       </div>
 
