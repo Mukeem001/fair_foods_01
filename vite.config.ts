@@ -17,9 +17,9 @@ export default defineConfig({
   root: "client",
   define: {
     __VITE_API_BASE_URL__: JSON.stringify(
-      process.env.VITE_API_BASE_URL || process.env.NODE_ENV === "production"
-        ? "https://fair-foods-01.onrender.com"
-        : "/api"
+      process.env.VITE_API_BASE_URL || (process.env.NODE_ENV === "production"
+        ? "https://fair-foods-01.onrender.com/api"
+        : "/api")
     ),
   },
   server: {

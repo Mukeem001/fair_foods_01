@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
+import { apiUrl } from "@/lib/api";
 import { ShoppingBag, PackageCheck, ChevronRight, ArrowLeft } from "lucide-react";
 
 export default function Orders() {
@@ -29,7 +30,10 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      const res = await fetch(`/api/profile/orders`, {
+      const url = apiUrl("/api/profile/orders");
+      console.log("Orders: fetching from", url);
+
+      const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

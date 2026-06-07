@@ -9,14 +9,13 @@ export function apiUrl(path: string): string {
   // If someone passes full URL, keep it.
   if (/^https?:\/\//i.test(p)) return p;
 
-  // Already starts with /api, prepend base URL if absolute
-  if (p.startsWith("/api")) {
-    return API_BASE.includes("://") ? API_BASE.replace(/\/api\/?$/, "") + p : p;
-  }
-
-  // Fallback to base URL
-  const base = API_BASE.includes("://") ? API_BASE : API_BASE;
-  return base + (base.endsWith("/") ? "" : "/") + p.replace(/^\/?/, "");
+  // Strip leading /api if present (will be in API_BASE)
+  const cleanPath = p.startsWith("/api") ? p.substring(4) : p;
+  
+  // Construct final URL
+  return API_BASE.endsWith("/") 
+    ? API_BASE + cleanPath.replace(/^\//, "")
+    : API_BASE + (cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath);
 }
 
 async function throwIfResNotOk(res: Response) {
@@ -35,7 +34,8 @@ export async function apiFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const finalUrl = apiUrl(url);
+  const res = await fetch(finalUrl, {
     ...options,
     headers: {
       ...(options.headers || {}),
