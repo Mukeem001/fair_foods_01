@@ -60,8 +60,7 @@ export async function registerAuthRoutes(httpServer: Server, app: Express): Prom
   app.get("/api/auth/me", protectUserRoute, async (req, res) => {
     try {
       // `protectUserRoute` sets `req.authUser`
-      const authUser = (req as any).authUser;
-      return res.json({ user: authUser || null });
+      return res.json({ user: req.authUser || null });
     } catch (e) {
       return res.status(500).json({ message: "Failed to get user" });
     }
@@ -185,12 +184,9 @@ export async function registerAuthRoutes(httpServer: Server, app: Express): Prom
           const message = await sendSmsOtp(String(identifier));
           return res.json({ message, type: "sms" });
         }
-      } catch (otpError: unknown) {
-        const err = otpError as { message?: string };
-        console.error("OTP send error:", err);
-        return res.status(500).json({
-          message: err.message || "Failed to send OTP. Please try again.",
-        });
+      } catch (otpError) {
+        console.error("OTP send error:", otpError);
+        return res.status(500).json({ message: "Failed to send OTP" });
       }
     } catch (e) {
       console.error("Send OTP failed", e);
@@ -216,51 +212,6 @@ export async function registerAuthRoutes(httpServer: Server, app: Express): Prom
     } catch (e) {
       console.error("Verify OTP failed", e);
       return res.status(500).json({ message: "Failed to verify OTP" });
-    }
-  });
-
-  // Login after OTP was verified (phone or email)
-  app.post("/api/auth/login-after-otp", async (req, res) => {
-    try {
-      const { identifier } = req.body ?? {};
-      if (!identifier) {
-        return res.status(400).json({ message: "Identifier required" });
-      }
-
-      const id = String(identifier);
-      const isEmail = id.includes("@");
-      const db = await getDb();
-      const otpCollection = db.collection("otp_store");
-      const users = db.collection("users");
-
-      const otpQuery = isEmail
-        ? { email: id.toLowerCase(), verified: true }
-        : { phone: id, verified: true };
-
-      const otpRecord = await otpCollection.findOne(otpQuery);
-      if (!otpRecord) {
-        return res.status(401).json({ message: "OTP not verified. Please verify OTP first." });
-      }
-
-      const userQuery = isEmail ? { email: id.toLowerCase() } : { phone: id };
-      const user = await users.findOne(userQuery);
-      if (!user) {
-        return res.status(404).json({ message: "No account found. Please sign up first." });
-      }
-
-      const token = signToken(String(user.id));
-      return res.json({
-        token,
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone,
-        },
-      });
-    } catch (e) {
-      console.error("Login after OTP failed", e);
-      return res.status(500).json({ message: "Login failed" });
     }
   });
 
@@ -368,7 +319,7 @@ export async function registerAuthRoutes(httpServer: Server, app: Express): Prom
       const users = db.collection("users");
 
       // Find existing user by email
-      let user: any = await users.findOne({ email: String(email).toLowerCase() });
+      let user = await users.findOne({ email: String(email).toLowerCase() });
 
       if (user) {
         // User exists - update profile if needed

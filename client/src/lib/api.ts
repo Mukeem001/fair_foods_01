@@ -1,20 +1,44 @@
-/** In dev, use Vite proxy (`/api` → server). In prod, use VITE_API_BASE_URL. */
-export function getApiBaseUrl(): string {
-  if (import.meta.env.DEV) return "";
-  return String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-}
-
 export function apiUrl(path: string): string {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  const base = getApiBaseUrl();
-  return base ? `${base}${normalized}` : normalized;
+  const p = String(path || "").trim();
+  if (!p) return p;
+
+  // `vite` dev server proxy: /api -> backend
+  if (p.startsWith("/api")) return p;
+
+  // If someone passes full URL, keep it.
+  if (/^https?:\/\//i.test(p)) return p;
+
+  // Fallback to /api base.
+  return `/api/${p.replace(/^\/?/, "")}`;
 }
 
-export const API_BASE_URL = getApiBaseUrl();
-
-export function apiFetch(input: RequestInfo, init?: RequestInit) {
-  if (typeof input === "string" && input.startsWith("/api")) {
-    return fetch(apiUrl(input), init);
+async function throwIfResNotOk(res: Response) {
+  if (!res.ok) {
+    let text = "";
+    try {
+      text = (await res.text()) || res.statusText;
+    } catch {
+      text = res.statusText;
+    }
+    throw new Error(`${res.status}: ${text}`);
   }
-  return fetch(input, init);
 }
+
+export async function apiFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      // If body is provided and no content-type, assume JSON.
+      ...(options.body && !options.headers && { "Content-Type": "application/json" }),
+    },
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return res;
+}
+

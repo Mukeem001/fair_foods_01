@@ -3,7 +3,7 @@ import admin from "firebase-admin";
 // Initialize Firebase Admin SDK for backend phone authentication
 // Using the Firebase private key token from .env
 
-let firebaseApp: admin.app.App | null = null;
+let firebaseApp: admin.app.App;
 
 try {
   // Check if we have Firebase credentials

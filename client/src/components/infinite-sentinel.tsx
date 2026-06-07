@@ -1,36 +1,33 @@
 import { useEffect, useRef } from "react";
 
-type Props = {
-  onLoadMore: () => void;
+export default function InfiniteSentinel({
+  onLoadMore,
+  hasMore,
+}: {
+  onLoadMore: () => void | Promise<void>;
   hasMore: boolean;
-  root?: Element | null;
-  rootMargin?: string;
-};
-
-export function InfiniteSentinel({ onLoadMore, hasMore, root, rootMargin = "200px" }: Props) {
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!ref.current || !hasMore) return;
-
+    if (!hasMore) return;
     const el = ref.current;
-    const obs = new IntersectionObserver(
+    if (!el) return;
+
+    const io = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && hasMore) {
-            onLoadMore();
-          }
-        });
+        const first = entries[0];
+        if (first?.isIntersecting) {
+          onLoadMore();
+        }
       },
-      { root: root || null, rootMargin }
+      { threshold: 0.1 }
     );
 
-    obs.observe(el);
-
-    return () => obs.disconnect();
-  }, [onLoadMore, hasMore, root, rootMargin]);
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, onLoadMore]);
 
   return <div ref={ref} style={{ height: 1 }} />;
 }
 
-export default InfiniteSentinel;
