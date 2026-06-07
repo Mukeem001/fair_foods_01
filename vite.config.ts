@@ -17,9 +17,14 @@ export default defineConfig({
   root: "client",
   define: {
     __VITE_API_BASE_URL__: JSON.stringify(
-      process.env.VITE_API_BASE_URL || (process.env.NODE_ENV === "production"
-        ? "https://fair-foods-01.onrender.com/api"
-        : "/api")
+      // Always use absolute URL for production (Hostinger),
+      // only use relative /api for local development
+      process.env.VITE_API_BASE_URL || (
+        // Use absolute URL if: explicitly set NODE_ENV=production, or building for dist
+        process.env.NODE_ENV === "production" || process.env.VITE_BUILD_FOR_PRODUCTION === "true"
+          ? "https://fair-foods-01.onrender.com/api"
+          : "/api"
+      )
     ),
   },
   server: {

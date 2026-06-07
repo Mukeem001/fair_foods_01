@@ -42,6 +42,9 @@ async function buildAll() {
     console.log("SKIP_CLIENT_BUILD is set — skipping client build");
   } else {
     console.log("building client...");
+    // Ensure NODE_ENV and production flag are set for proper API URL injection
+    process.env.NODE_ENV = process.env.NODE_ENV || "production";
+    process.env.VITE_BUILD_FOR_PRODUCTION = "true";
     await viteBuild();
   }
 
