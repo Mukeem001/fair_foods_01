@@ -12,44 +12,62 @@ const [, setLocation] = useLocation();
 const [orders,setOrders] = useState<any[]>([]);
 const [loading,setLoading] = useState(false);
 
-useEffect(()=>{
+useEffect(() => {
+  if (!user) {
+    setLocation("/login");
+    return;
+  }
 
-if(!user){
-setLocation("/login");
-return;
-}
+  const token = localStorage.getItem("fairfoods-token") ?? "";
+  if (!token) {
+    console.warn("Orders: missing fairfoods-token in localStorage");
+    setLocation("/login");
+    return;
+  }
 
-const load = async () => {
-try {
+  const load = async () => {
+    try {
+      setLoading(true);
 
-setLoading(true);
+      const res = await fetch(`/api/profile/orders`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-const res = await fetch(`/api/profile/orders`, {
-headers: {
-Authorization: `Bearer ${localStorage.getItem("fairfoods-token") ?? ""}`,
-},
-});
+      // Helpful debug: if auth fails you'll see 401/403 in console.
+      if (!res.ok) {
+        const bodyText = await res.text().catch(() => "");
+        console.warn("Orders: fetch failed", {
+          status: res.status,
+          bodyText,
+        });
+        setOrders([]);
+        return;
+      }
 
-const data = await res.json();
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.warn("Orders: response is not valid JSON", { first200: text.slice(0, 200) });
+        setOrders([]);
+        return;
+      }
 
-const realOrders = Array.isArray(data?.orders) ? data.orders : [];
-setOrders(realOrders);
+      const realOrders = Array.isArray(data?.orders) ? data.orders : [];
+      setOrders(realOrders);
+    } catch (e) {
+      console.error("Orders: load error", e);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-} catch {
-
-setOrders([]);
-
-} finally {
-
-setLoading(false);
-
-}
-
-};
-
-load();
-
-},[user]);
+  load();
+}, [user, setLocation]);
 
 return(
 
