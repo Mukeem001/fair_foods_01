@@ -3,7 +3,9 @@ import type { Request, Response, NextFunction } from "express";
 // Keep this tight for security. Add more origins if needed.
 const allowedOrigins = new Set([
   "http://localhost:5173",
+  "http://localhost:5175",
   "http://127.0.0.1:5173",
+  "http://127.0.0.1:5175",
   "http://localhost:3000",
   "http://172.16.2.64:5173",
   "https://fairfoods.in",
