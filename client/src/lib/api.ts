@@ -1,15 +1,22 @@
+// API base URL - uses absolute URL in production, relative in dev
+declare const __VITE_API_BASE_URL__: string;
+const API_BASE = typeof __VITE_API_BASE_URL__ !== "undefined" ? __VITE_API_BASE_URL__ : "/api";
+
 export function apiUrl(path: string): string {
   const p = String(path || "").trim();
   if (!p) return p;
 
-  // `vite` dev server proxy: /api -> backend
-  if (p.startsWith("/api")) return p;
-
   // If someone passes full URL, keep it.
   if (/^https?:\/\//i.test(p)) return p;
 
-  // Fallback to /api base.
-  return `/api/${p.replace(/^\/?/, "")}`;
+  // Already starts with /api, prepend base URL if absolute
+  if (p.startsWith("/api")) {
+    return API_BASE.includes("://") ? API_BASE.replace(/\/api\/?$/, "") + p : p;
+  }
+
+  // Fallback to base URL
+  const base = API_BASE.includes("://") ? API_BASE : API_BASE;
+  return base + (base.endsWith("/") ? "" : "/") + p.replace(/^\/?/, "");
 }
 
 async function throwIfResNotOk(res: Response) {

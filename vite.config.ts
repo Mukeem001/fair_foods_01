@@ -15,6 +15,13 @@ export default defineConfig({
     },
   },
   root: "client",
+  define: {
+    __VITE_API_BASE_URL__: JSON.stringify(
+      process.env.VITE_API_BASE_URL || process.env.NODE_ENV === "production"
+        ? "https://fair-foods-01.onrender.com"
+        : "/api"
+    ),
+  },
   server: {
     port: Number(process.env.VITE_PORT || 5173),
     strictPort: false,
