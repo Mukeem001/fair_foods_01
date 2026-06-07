@@ -41,6 +41,6 @@ export default defineConfig({
     host: true,
   },
   build: {
-    outDir: "../dist/public",
+    outDir: "dist",
   },
 });
