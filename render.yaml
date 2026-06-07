@@ -1,3 +1,5 @@
+# Render deployment configuration for fair-foods server
+# This ensures both client and server are built during deployment
 services:
   - type: web
     name: fair-foods-server
@@ -7,3 +9,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: "3000"
