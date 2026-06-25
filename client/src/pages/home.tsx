@@ -21,10 +21,16 @@
   export default function Home() {
     const store = useStore();
     const foods = store?.foods ?? [];
+    const { user } = store || {};
 
     const [search, setSearch] = useState<string>("");
     const [category, setCategory] = useState<string>("All");
     const [currentSlide, setCurrentSlide] = useState<number>(0);
+
+    // Extract half address (first part before comma or first 20 chars)
+    const displayAddress = user?.address 
+      ? user.address.split(",")[0].substring(0, 25) + (user.address.split(",")[0].length > 25 ? "..." : "")
+      : "Your Location";
 
     useEffect(() => {
       const timer = setInterval(() => {
@@ -83,7 +89,7 @@
               <div className="leading-tight">
                 <p className="text-[10px] text-gray-400">Deliver to</p>
                 <p className="text-sm font-semibold text-gray-800">
-                  Your Location
+                  {displayAddress}
                 </p>
               </div>
             </div>
