@@ -62,6 +62,56 @@ export async function registerProfileOrdersRoutes(httpServer: Server, app: Expre
     }
   });
 
+  // GET /api/profile/orders/:id (Protected - Requires JWT)
+  app.get("/api/profile/orders/:id", protectUserRoute, async (req, res) => {
+    try {
+      const userId = (req as Request & { authUser?: AuthUser }).authUser!.userId;
+      const orderId = req.params.id;
+
+      const order = await orders.findOne({ userId, id: orderId } as any);
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Attach product images
+      const foods = db.collection<any>("foods");
+      const items = Array.isArray(order.items) ? order.items : [];
+      
+      const allFoodIds = Array.from(
+        new Set(
+          items
+            .map((it: any) => it?.id)
+            .filter((id: any) => id !== undefined && id !== null)
+        )
+      );
+
+      const foodsDocs = allFoodIds.length
+        ? await foods.find({ id: { $in: allFoodIds } }).toArray()
+        : [];
+
+      const foodImgMap: Record<string, string> = {};
+      for (const f of foodsDocs) {
+        if (f?.id) foodImgMap[String(f.id)] = f.img;
+      }
+
+      const enriched = {
+        ...order,
+        items: items.map((it: any) => ({
+          ...it,
+          img: it?.img ?? foodImgMap[String(it?.id ?? "")] ?? it?.image ?? undefined,
+          image: it?.image ?? foodImgMap[String(it?.id ?? "")] ?? it?.img ?? undefined,
+        })),
+        image: order?.image ?? (items[0]?.image || items[0]?.img),
+      };
+
+      res.json(enriched);
+    } catch (e) {
+      console.error("Failed to fetch order by id", e);
+      res.status(500).json({ message: "Failed to fetch order" });
+    }
+  });
+
   return httpServer;
 }
 
