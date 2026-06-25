@@ -12,6 +12,7 @@ import ForgotPassword from "@/pages/forgot-password";
 import Profile from "@/pages/profile";
 import Wallet from "@/pages/wallet";
 import Orders from "@/pages/orders";
+import TrackOrder from "@/pages/track-order";
 import Addresses from "@/pages/addresses";
 import Payments from "@/pages/payments";
 import Support from "@/pages/support";
@@ -33,6 +34,7 @@ function Router() {
             <Route path="/profile" component={Profile} />
             <Route path="/wallet" component={Wallet} />
             <Route path="/orders" component={Orders} />
+            <Route path="/track-order/:id" component={TrackOrder} />
             <Route path="/addresses" component={Addresses} />
             <Route path="/payments" component={Payments} />
             <Route path="/support" component={Support} />
