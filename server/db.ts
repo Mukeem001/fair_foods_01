@@ -73,3 +73,14 @@ export interface AddressDocument {
   createdAt: Date;
 }
 
+export interface WalletRequestDocument {
+  id: string;
+  userId: string;
+  amount: number;
+  status: "pending" | "approved" | "rejected";
+  rejectReason?: string;
+  createdAt: Date;
+  approvedAt?: Date;
+  rejectedAt?: Date;
+}
+

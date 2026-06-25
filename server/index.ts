@@ -78,6 +78,8 @@ app.use((req, res, next) => {
   const { registerAddressRoutes } = await import("./routes-addresses");
   await registerAddressRoutes(httpServer, app);
 
+  const { registerWalletRoutes } = await import("./routes-wallet");
+  await registerWalletRoutes(httpServer, app);
 
 
 

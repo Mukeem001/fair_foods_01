@@ -201,35 +201,5 @@ export async function registerRoutes(
     }
   });
 
-  // POST /api/profile/add-funds (Protected - Add money to wallet)
-  app.post("/api/profile/add-funds", protectUserRoute, async (req, res) => {
-    try {
-      const userId = (req as Request & { authUser?: AuthUser }).authUser!.userId;
-      const { amount } = req.body ?? {};
-
-      if (!amount || typeof amount !== "number" || amount <= 0) {
-        return res.status(400).json({ message: "Invalid amount" });
-      }
-
-      if (amount < 10) {
-        return res.status(400).json({ message: "Minimum amount is ₹10" });
-      }
-
-      const existing = await users.findOne({ id: userId });
-      if (!existing) return res.status(404).json({ message: "User not found" });
-
-      const currentBalance = existing.walletBalance ?? 0;
-      const newBalance = currentBalance + amount;
-
-      await users.updateOne({ id: userId }, { $set: { walletBalance: newBalance } });
-      const updated = await users.findOne({ id: userId });
-
-      res.json({ user: updated, message: `₹${amount} added successfully` });
-    } catch (e) {
-      console.error("Failed to add funds:", e);
-      res.status(500).json({ message: "Failed to add funds" });
-    }
-  });
-
   return httpServer;
 }

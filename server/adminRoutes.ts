@@ -448,6 +448,11 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
       const status = String(req.query.status || "all");
       const createdType = String(req.query.createdType || "");
 
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      const walletRequests = db.collection<any>("walletRequests");
+      const users = db.collection<any>("users");
+
       const col = await getDepositsCursor();
 
       const filter: any = {};
@@ -484,6 +489,7 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
         filter.createdAt = { ...(filter.createdAt || {}), $lte: new Date(String(req.query.createdBefore)) };
       }
 
+      // Fetch regular deposits
       const total = await col.countDocuments(filter).catch(() => 0);
       const docs = await col
         .find(filter)
@@ -493,7 +499,53 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
         .toArray();
 
       const deposits = Array.isArray(docs) ? docs.map(toFrontendDeposit) : [];
-      return res.json({ deposits, pagination: { page, limit, total } });
+
+      // Fetch wallet requests
+      const walletFilter: any = {};
+      if (status !== "all") {
+        walletFilter.status = status === "pending" ? "pending" : status;
+      }
+      if (createdType || req.query.createdAfter || req.query.createdBefore) {
+        walletFilter.createdAt = filter.createdAt;
+      }
+
+      const walletReqDocs = await walletRequests
+        .find(walletFilter)
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      // Enrich wallet requests with user data
+      const enrichedWalletReqs = await Promise.all(
+        walletReqDocs.map(async (req: any) => {
+          const user = await users.findOne({ id: req.userId });
+          return {
+            id: req.id,
+            _id: req.id,
+            userId: req.userId,
+            userName: user?.fullName || "Unknown",
+            userEmail: user?.email || "",
+            userPhone: user?.phone || "",
+            amount: req.amount,
+            status: req.status,
+            createdAt: req.createdAt,
+            approvedAt: req.approvedAt,
+            rejectedAt: req.rejectedAt,
+            rejectReason: req.rejectReason,
+            type: "wallet_topup",
+            paymentMethod: "Wallet Topup Request",
+          };
+        })
+      );
+
+      // Combine both lists and sort by date
+      const combined = [...deposits, ...enrichedWalletReqs].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      return res.json({ 
+        deposits: combined.slice(0, limit), 
+        pagination: { page, limit, total: combined.length } 
+      });
     } catch (e) {
       console.error("GET /api/admin/deposits failed", e);
       return res.status(500).json({ message: "Failed to fetch deposits" });
@@ -530,8 +582,42 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
 
   app.post("/api/pay/admin-approve/:id", async (req: Request, res: Response) => {
     try {
-      const col = await getDepositsCursor();
       const { id } = req.params;
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      const walletRequests = db.collection<any>("walletRequests");
+      const users = db.collection<any>("users");
+
+      // Check if it's a wallet request
+      const walletReq = await walletRequests.findOne({ id });
+      if (walletReq) {
+        // This is a wallet request
+        if (walletReq.status !== "pending") {
+          return res.status(400).json({ message: "Request is already processed" });
+        }
+
+        // Get user and update wallet balance
+        const user = await users.findOne({ id: walletReq.userId });
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const newBalance = (user.walletBalance ?? 0) + walletReq.amount;
+
+        // Update wallet balance
+        await users.updateOne({ id: walletReq.userId }, { $set: { walletBalance: newBalance } });
+
+        // Update request status
+        await walletRequests.updateOne(
+          { id },
+          { $set: { status: "approved", approvedAt: new Date() } }
+        );
+
+        return res.json({ message: `Wallet request approved. ₹${walletReq.amount} added to wallet` });
+      }
+
+      // Otherwise, it's a regular deposit
+      const col = await getDepositsCursor();
 
       await col.updateOne(
         { _id: id as any },
@@ -549,9 +635,37 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
 
   app.post("/api/pay/admin-reject/:id", async (req: Request, res: Response) => {
     try {
-      const col = await getDepositsCursor();
       const { id } = req.params;
       const reason = req.body?.reason;
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      const walletRequests = db.collection<any>("walletRequests");
+
+      // Check if it's a wallet request
+      const walletReq = await walletRequests.findOne({ id });
+      if (walletReq) {
+        // This is a wallet request
+        if (walletReq.status !== "pending") {
+          return res.status(400).json({ message: "Request is already processed" });
+        }
+
+        // Update request status
+        await walletRequests.updateOne(
+          { id },
+          { 
+            $set: { 
+              status: "rejected", 
+              rejectReason: reason || "Admin rejected",
+              rejectedAt: new Date() 
+            } 
+          }
+        );
+
+        return res.json({ message: `Wallet request rejected` });
+      }
+
+      // Otherwise, it's a regular deposit
+      const col = await getDepositsCursor();
 
       await col.updateOne(
         { _id: id as any },

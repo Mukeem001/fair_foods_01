@@ -24,6 +24,7 @@ const [showPhoneOtp,setShowPhoneOtp] = useState(false);
 
 const [emailOtp,setEmailOtp] = useState("");
 const [phoneOtp,setPhoneOtp] = useState("");
+const [walletBalance, setWalletBalance] = useState(user?.walletBalance ?? 0);
 
 useEffect(()=>{
 
@@ -38,6 +39,38 @@ setPhone(user.phone ?? "");
 setAvatar(user.avatar ?? "");
 
 },[user]);
+
+// Fetch wallet balance from server
+useEffect(()=>{
+  const fetchWalletBalance = async () => {
+    try {
+      const token = localStorage.getItem("fairfoods-token");
+      if (!token || !user) return;
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://fair-foods-01.onrender.com'}/api/profile`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user && data.user.walletBalance !== undefined) {
+          setWalletBalance(data.user.walletBalance);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch wallet balance:", err);
+    }
+  };
+
+  if (user) {
+    fetchWalletBalance();
+    // Refresh every 5 seconds to show real-time updates
+    const interval = setInterval(fetchWalletBalance, 5000);
+    return () => clearInterval(interval);
+  }
+}, [user]);
 
 if(!user) return null;
 
@@ -313,7 +346,7 @@ Wallet
 </p>
 
 <p className="text-sm font-semibold">
-₹{user.walletBalance.toFixed(2)}
+₹{walletBalance.toFixed(2)}
 </p>
 
 </div>

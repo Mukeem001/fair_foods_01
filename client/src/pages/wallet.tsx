@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function WalletPage() {
 
-const { user, addFunds } = useStore();
+const { user } = useStore();
 const [, setLocation] = useLocation();
 
 const [amount,setAmount]=useState("");
@@ -101,26 +101,34 @@ const confirmPayment=async()=>{
 
 const value=Number(amount);
 
-await addFunds(value);
+try {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://fair-foods-01.onrender.com'}/api/profile/wallet-requests`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${localStorage.getItem("fairfoods-token") || ""}`
+    },
+    body: JSON.stringify({ amount: value }),
+  });
 
-setTransactions([
-{
-id:Date.now(),
-amount:value,
-type:"credit",
-title:`Wallet Topup`,
-description:"UPI Payment Successful",
-date:new Date().toISOString()
-},
-...transactions
-]);
+  const data = await res.json();
 
-setShowConfirmPopup(false);
-setShowSuccess(true);
+  if (!res.ok) {
+    setMessage(data.message || "Failed to create wallet request");
+    setShowConfirmPopup(false);
+    return;
+  }
 
-setMessage(`₹${value} added successfully`);
-setAmount("");
-setUtr("");
+  setShowConfirmPopup(false);
+  setShowSuccess(true);
+  setMessage(`₹${value} request submitted! Waiting for admin approval.`);
+  setAmount("");
+  setUtr("");
+} catch (err) {
+  console.error("Error creating wallet request:", err);
+  setMessage("Failed to create wallet request");
+  setShowConfirmPopup(false);
+}
 
 };
 
