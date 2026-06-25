@@ -54,6 +54,10 @@ export interface OrderDocument {
   whatsappNumber: string;
   status: string;
   createdAt: Date;
+  deliveryBoy?: {
+    name?: string;
+    phone?: string;
+  };
 }
 
 export interface AddressDocument {

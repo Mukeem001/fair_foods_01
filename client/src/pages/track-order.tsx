@@ -11,6 +11,9 @@ import {
   Truck,
   Home,
   Package,
+  Download,
+  User,
+  Phone,
 } from "lucide-react";
 
 export default function TrackOrder() {
@@ -147,23 +150,165 @@ export default function TrackOrder() {
 
   const statusSteps = getStatusSteps();
 
+  const handleDownloadInvoice = () => {
+    const orderDate = new Date(order.createdAt);
+    const invoiceHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice - Order ${order.id}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; background: white; }
+          .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #f97316; padding-bottom: 20px; }
+          .header h1 { color: #f97316; font-size: 28px; margin-bottom: 5px; }
+          .header p { color: #666; }
+          .invoice-meta { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .invoice-meta-block { width: 48%; }
+          .invoice-meta-block label { color: #666; font-weight: bold; display: block; font-size: 12px; }
+          .invoice-meta-block p { color: #333; margin-top: 5px; }
+          .section { margin-bottom: 30px; }
+          .section-title { background: #f97316; color: white; padding: 10px 15px; font-weight: bold; margin-bottom: 15px; border-radius: 4px; }
+          .section-content { margin-left: 0; }
+          .content-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+          .content-row.header { background: #f5f5f5; font-weight: bold; border-bottom: 2px solid #ddd; }
+          .col { flex: 1; }
+          .col-right { text-align: right; }
+          .items-table { width: 100%; border-collapse: collapse; }
+          .items-table th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
+          .items-table td { padding: 10px; border-bottom: 1px solid #eee; }
+          .items-table tr:last-child td { border-bottom: none; }
+          .total-row { display: flex; justify-content: flex-end; margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+          .total-label { font-weight: bold; margin-right: 20px; }
+          .total-amount { font-size: 20px; color: #f97316; font-weight: bold; }
+          .delivery-info { background: #fef3c7; padding: 15px; border-left: 4px solid #f97316; margin-bottom: 20px; border-radius: 4px; }
+          .delivery-info-item { margin-bottom: 8px; }
+          .delivery-info-label { color: #666; font-size: 12px; font-weight: bold; }
+          .delivery-info-value { color: #333; margin-top: 3px; }
+          .footer { text-align: center; margin-top: 40px; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px; }
+          @media print { body { margin: 0; padding: 0; } .container { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>FAIR FOODS</h1>
+            <p>Order Invoice</p>
+          </div>
+          
+          <div class="invoice-meta">
+            <div class="invoice-meta-block">
+              <label>Invoice #</label>
+              <p>${order.id}</p>
+            </div>
+            <div class="invoice-meta-block">
+              <label>Order Date</label>
+              <p>${orderDate.toLocaleDateString("en-IN")} ${orderDate.toLocaleTimeString("en-IN")}</p>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Delivery Details</div>
+            <div class="delivery-info">
+              <div class="delivery-info-item">
+                <div class="delivery-info-label">Delivery Address</div>
+                <div class="delivery-info-value">${order.address || "Not specified"}</div>
+              </div>
+              ${order.deliveryBoy?.name ? `
+              <div class="delivery-info-item">
+                <div class="delivery-info-label">Delivery Boy</div>
+                <div class="delivery-info-value">${order.deliveryBoy.name}</div>
+              </div>
+              ` : ""}
+              ${order.deliveryBoy?.phone ? `
+              <div class="delivery-info-item">
+                <div class="delivery-info-label">Delivery Contact</div>
+                <div class="delivery-info-value">${order.deliveryBoy.phone}</div>
+              </div>
+              ` : ""}
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Order Items</div>
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Item Name</th>
+                  <th>Qty</th>
+                  <th style="text-align: right;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Array.isArray(order.items) ? order.items.map((item: any) => `
+                  <tr>
+                    <td>${item.name}${item.option ? " (" + item.option + ")" : ""}</td>
+                    <td>${item.qty}</td>
+                    <td style="text-align: right;">₹${Number(item.price || 0).toFixed(2)}</td>
+                  </tr>
+                `).join("") : ""}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="total-row">
+            <span class="total-label">Total Amount:</span>
+            <span class="total-amount">₹${Number(order.total || 0).toFixed(2)}</span>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Order Status</div>
+            <p style="padding: 10px; color: #333;">${order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}</p>
+          </div>
+
+          <div class="footer">
+            <p>Thank you for your order! For support, contact us on WhatsApp.</p>
+            <p>This is a computer-generated invoice.</p>
+          </div>
+        </div>
+        <script>
+          window.print();
+        </script>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([invoiceHTML], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Invoice-" + order.id + ".html";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="min-h-screen bg-[#f4f6fb] pb-24">
         {/* HEADER */}
-        <div className="bg-white px-4 py-3 rounded-b-2xl shadow-sm flex items-center gap-3">
-          <button
-            onClick={() => setLocation("/orders")}
-            className="p-2 rounded-full hover:bg-gray-100"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-800">
-              Track Order
-            </h1>
-            <p className="text-xs text-gray-500">Order #{order.id}</p>
+        <div className="bg-white px-4 py-3 rounded-b-2xl shadow-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/orders")}
+              className="p-2 rounded-full hover:bg-gray-100"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-800">
+                Track Order
+              </h1>
+              <p className="text-xs text-gray-500">Order #{order.id}</p>
+            </div>
           </div>
+          <button
+            onClick={handleDownloadInvoice}
+            className="p-2 rounded-full hover:bg-orange-100 text-orange-600"
+            title="Download Invoice"
+          >
+            <Download size={20} />
+          </button>
         </div>
 
         <div className="max-w-md mx-auto space-y-4 p-4">
@@ -360,6 +505,41 @@ export default function TrackOrder() {
               </p>
             )}
           </div>
+
+          {/* DELIVERY BOY INFO */}
+          {(order.deliveryBoy?.name || order.deliveryBoy?.phone) && (
+            <div className="bg-blue-50 rounded-2xl shadow-sm p-4 border border-blue-200">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <Truck size={18} className="text-blue-600" />
+                Delivery Boy
+              </h3>
+
+              <div className="space-y-2">
+                {order.deliveryBoy?.name && (
+                  <div className="flex items-center gap-2">
+                    <User size={16} className="text-blue-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {order.deliveryBoy.name}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {order.deliveryBoy?.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} className="text-blue-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {order.deliveryBoy.phone}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* HELP */}
           <div className="bg-orange-50 rounded-2xl p-4 border border-orange-200">
