@@ -326,11 +326,27 @@ const res = await apiFetch(`/api/profile`, {
   };
 
   const addFunds = async (amount: number) => {
-    if (!user) return;
-    const updated = { ...user, walletBalance: user.walletBalance + amount };
-    setUser(updated);
-    const users = loadUsers().map((u) => (u.id === user.id ? updated : u));
-    saveUsers(users);
+    if (!user || !token) return;
+    try {
+      const res = await apiFetch("/api/profile/add-funds", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Failed to add funds:", data);
+        return;
+      }
+      if (data.user) {
+        setUser(data.user);
+      }
+    } catch (e) {
+      console.error("Error adding funds:", e);
+    }
   };
 
   const setAuthSession = (
