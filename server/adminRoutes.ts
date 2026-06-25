@@ -656,7 +656,54 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
       ]).toArray();
       const totalUsers = (usersAgg[0] && usersAgg[0].uniqueUsers) || 0;
 
-      const recentOrders = await orders.find({}).sort({ createdAt: -1 }).limit(6).toArray();
+      // Fetch recent orders with user details using aggregation with $lookup
+      const recentOrdersAgg = await orders.aggregate([
+        { $sort: { createdAt: -1 } },
+        { $limit: 6 },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "id",
+            as: "userDetails"
+          }
+        },
+        {
+          $addFields: {
+            user: {
+              $cond: {
+                if: { $gt: [{ $size: "$userDetails" }, 0] },
+                then: {
+                  fullName: {
+                    $arrayElemAt: ["$userDetails.fullName", 0]
+                  },
+                  email: {
+                    $arrayElemAt: ["$userDetails.email", 0]
+                  },
+                  phone: {
+                    $arrayElemAt: ["$userDetails.phone", 0]
+                  }
+                },
+                else: null
+              }
+            },
+            userName: {
+              $cond: {
+                if: { $gt: [{ $size: "$userDetails" }, 0] },
+                then: {
+                  $arrayElemAt: ["$userDetails.fullName", 0]
+                },
+                else: "Unknown"
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            userDetails: 0
+          }
+        }
+      ]).toArray();
 
       return res.json({
         totalProducts,
@@ -664,7 +711,7 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
         totalRevenue,
         pendingOrders,
         totalUsers,
-        recentOrders,
+        recentOrders: recentOrdersAgg,
       });
     } catch (error) {
       console.error('Failed to compute dashboard stats', error);
