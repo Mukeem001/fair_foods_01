@@ -720,7 +720,7 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
   });
 
   app.patch("/api/admin/orders/:id/status", async (req: Request, res: Response) => {
-    const { status } = req.body;
+    const { status, deliveryBoy } = req.body;
     const allowed = ["pending", "processing", "completed", "cancelled"];
 
     if (!allowed.includes(status)) {
@@ -732,9 +732,17 @@ export async function registerAdminRoutes(httpServer: Server, app: Express): Pro
       return res.status(404).json({ message: "Order not found" });
     }
 
+    const updateData: any = { status };
+    if (deliveryBoy && (deliveryBoy.name || deliveryBoy.phone)) {
+      updateData.deliveryBoy = {
+        name: deliveryBoy.name || "",
+        phone: deliveryBoy.phone || "",
+      };
+    }
+
     await orders.updateOne(
       { id: req.params.id },
-      { $set: { status } }
+      { $set: updateData }
     );
 
     const updated = await orders.findOne({ id: req.params.id });
